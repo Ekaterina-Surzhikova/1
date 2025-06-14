@@ -1,286 +1,363 @@
-#include <iostream>
-#include <fstream>
-#include <string>
 #include "Header.h"
 
-using namespace std;
+// Р РµР°Р»РёР·Р°С†РёСЏ РјРµС‚РѕРґРѕРІ InputValidator
+InputValidator::InputValidator(const string& input) {
+    originalInput = input;
+    cleanedInput = "";
+    hasNonDigits = false;
 
-// Узел для хранения одной цифры числа
-struct DigitNode {
-    int digit;
-    DigitNode* next;
-
-    DigitNode(int d) : digit(d), next(nullptr) {}
-};
-
-// Класс для работы с большими числами
-class BigNumber {
-private:
-    DigitNode* head;
-    DigitNode* tail;
-    int length;
-
-    // Рекурсивное сложение с переносом
-    static int addWithCarry(DigitNode* a, DigitNode* b, BigNumber& result, int carry) {
-        if (!a && !b) return carry;
-        int sum = carry + (a ? a->digit : 0) + (b ? b->digit : 0);
-        result.append(sum % 10);
-        return addWithCarry(a ? a->next : nullptr, b ? b->next : nullptr, result, sum / 10);
-    }
-
-public:
-    BigNumber() : head(nullptr), tail(nullptr), length(0) {}
-
-    // Добавление цифры в конец числа
-    void append(int digit) {
-        DigitNode* newNode = new DigitNode(digit);
-        if (!tail) head = tail = newNode;
-        else tail = tail->next = newNode;
-        length++;
-    }
-
-    // Загрузка числа из строки
-    void fromString(const string& s) {
-        for (char c : s) if (isdigit(c)) append(c - '0');
-    }
-
-    // Преобразование числа в строку
-    string toString() const {
-        string result;
-        for (DigitNode* curr = head; curr; curr = curr->next)
-            result += to_string(curr->digit);
-        return result.empty() ? "0" : result;
-    }
-
-    // Сложение двух больших чисел
-    static BigNumber add(const BigNumber& a, const BigNumber& b) {
-        BigNumber result;
-        if (addWithCarry(a.head, b.head, result, 0)) result.append(1);
-        return result;
-    }
-
-    // Проверка на ведущие нули
-    bool hasLeadingZeros() const {
-        return length > 1 && head->digit == 0;  // Число не должно начинаться с нуля, если его длина > 1
-    }
-
-    // Деструктор для освобождения памяти
-    ~BigNumber() {
-        while (head) {
-            DigitNode* temp = head;
-            head = head->next;
-            delete temp;
-        }
-    }
-};
-
-// Кольцевой список цифр
-class CircularNumberRing {
-private:
-    DigitNode* head;  // Начало кольца
-    DigitNode* tail;  // Конец кольца (связывает с head)
-    int length;       // Количество цифр
-
-public:
-    CircularNumberRing() : head(nullptr), tail(nullptr), length(0) {}
-
-    // Добавление цифры в кольцо
-    void append(int digit) {
-        DigitNode* newNode = new DigitNode(digit);
-        if (!tail) {
-            head = tail = newNode;
-            tail->next = head;  // Замыкаем кольцо
+    for (char c : originalInput) {
+        if (isdigit(c)) {
+            cleanedInput += c;
         }
         else {
-            tail->next = newNode;
-            newNode->next = head;
-            tail = newNode;
+            hasNonDigits = true;
         }
-        length++;
     }
+}
 
-    // Загрузка кольца из строки
-    void fromString(const string& s) {
-        for (char c : s) if (isdigit(c)) append(c - '0');
-    }
+// РџСЂРѕРІРµСЂСЏРµС‚, СЃРѕРґРµСЂР¶РёС‚ Р»Рё СЃС‚СЂРѕРєР° РјРёРЅРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ С†РёС„СЂ
+bool InputValidator::hasMinimumDigits(int minDigits) const {
+    return cleanedInput.length() >= minDigits;
+}
 
-    // Получение подпоследовательности цифр из кольца
-    BigNumber getSubNumber(DigitNode* start, int len) const {
-        BigNumber num;
-        DigitNode* curr = start;
-        for (int i = 0; i < len; ++i) {
-            num.append(curr->digit);
-            curr = curr->next;
+// РџСЂРѕРІРµСЂСЏРµС‚ РЅР°Р»РёС‡РёРµ РЅРµС†РёС„СЂРѕРІС‹С… СЃРёРјРІРѕР»РѕРІ
+bool InputValidator::containsNonDigits() const {
+    return hasNonDigits;
+}
+
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ РѕС‡РёС‰РµРЅРЅСѓСЋ СЃС‚СЂРѕРєСѓ (С‚РѕР»СЊРєРѕ С†РёС„СЂС‹)
+string InputValidator::getCleanedInput() const {
+    return cleanedInput;
+}
+
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ РёСЃС…РѕРґРЅСѓСЋ СЃС‚СЂРѕРєСѓ
+string InputValidator::getOriginalInput() const {
+    return originalInput;
+}
+
+// РЎС‚Р°С‚РёС‡РµСЃРєРёР№ РјРµС‚РѕРґ РґР»СЏ Р±С‹СЃС‚СЂРѕР№ РїСЂРѕРІРµСЂРєРё РІР°Р»РёРґРЅРѕСЃС‚Рё СЃС‚СЂРѕРєРё
+bool InputValidator::isValid(const string& input, int minDigits) {
+    int digitCount = 0;
+    for (char c : input) {
+        if (isdigit(c)) {
+            digitCount++;
+            if (digitCount >= minDigits) {
+                return true;
+            }
         }
-        return num;
+    }
+    return false;
+}
+
+// Р РµР°Р»РёР·Р°С†РёСЏ DigitNode
+DigitNode::DigitNode(int d) : digit(d), next(nullptr) {}
+
+// Р РµР°Р»РёР·Р°С†РёСЏ РјРµС‚РѕРґРѕРІ BigNumber
+BigNumber::BigNumber() : head(nullptr), tail(nullptr), length(0) {}
+
+// Р”РѕР±Р°РІР»СЏРµС‚ С†РёС„СЂСѓ РІ РєРѕРЅРµС† С‡РёСЃР»Р° (РјР»Р°РґС€РёР№ СЂР°Р·СЂСЏРґ)
+void BigNumber::append(int digit) {
+    DigitNode* newNode = new DigitNode(digit);
+    if (!tail) head = tail = newNode;
+    else {
+        tail->next = newNode;
+        tail = newNode;
+    }
+    length++;
+}
+
+// РЎРѕР·РґР°РµС‚ С‡РёСЃР»Рѕ РёР· СЃС‚СЂРѕРєРё (С†РёС„СЂС‹ С…СЂР°РЅСЏС‚СЃСЏ РІ РѕР±СЂР°С‚РЅРѕРј РїРѕСЂСЏРґРєРµ)
+void BigNumber::fromString(const string& s) {
+    for (int i = s.length() - 1; i >= 0; --i) {
+        if (isdigit(s[i])) append(s[i] - '0');
+    }
+}
+
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃС‚СЂРѕРєРѕРІРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ С‡РёСЃР»Р°
+string BigNumber::toString() const {
+    string result;
+    for (DigitNode* curr = head; curr; curr = curr->next) {
+        result += to_string(curr->digit);
+    }
+    reverse(result.begin(), result.end());
+    return result.empty() ? "0" : result;
+}
+
+// РЎС‚Р°С‚РёС‡РµСЃРєРёР№ РјРµС‚РѕРґ РґР»СЏ СЃР»РѕР¶РµРЅРёСЏ РґРІСѓС… Р±РѕР»СЊС€РёС… С‡РёСЃРµР»
+BigNumber BigNumber::add(const BigNumber& a, const BigNumber& b) {
+    return addLists(a.head, b.head);
+}
+
+BigNumber BigNumber::addLists(DigitNode* a, DigitNode* b) {
+    BigNumber result;
+    int carry = 0;
+
+    while (a || b || carry) {
+        int sum = carry;
+        if (a) {
+            sum += a->digit;
+            a = a->next;
+        }
+        if (b) {
+            sum += b->digit;
+            b = b->next;
+        }
+
+        result.append(sum % 10);
+        carry = sum / 10;
     }
 
-    // Поиск решения в кольце
-    string solve() const {
-        if (length < 3) return "No";  // Минимум 3 цифры для A, B и C
+    return result;
+}
 
-        // Перебираем все возможные начальные позиции и длины A и B
-        DigitNode* start = head;
-        for (int i = 0; i < length; ++i) {
-            for (int lenA = 1; lenA <= length - 2; ++lenA) {
-                for (int lenB = 1; lenB <= length - lenA - 1; ++lenB) {
-                    int lenC = length - lenA - lenB;
-                    if (lenC <= 0) continue;
+// РџСЂРѕРІРµСЂСЏРµС‚ РЅР°Р»РёС‡РёРµ РІРµРґСѓС‰РёС… РЅСѓР»РµР№
+bool BigNumber::hasLeadingZeros() const {
+    return length > 1 && tail->digit == 0;
+}
 
-                    // Получаем числа A, B и C из кольца
-                    BigNumber A = getSubNumber(start, lenA);
-                    DigitNode* bStart = start;
-                    for (int j = 0; j < lenA; ++j) bStart = bStart->next;
-                    BigNumber B = getSubNumber(bStart, lenB);
-                    DigitNode* cStart = bStart;
-                    for (int j = 0; j < lenB; ++j) cStart = cStart->next;
-                    BigNumber C = getSubNumber(cStart, lenC);
+// Р”РµСЃС‚СЂСѓРєС‚РѕСЂ - РѕСЃРІРѕР±РѕР¶РґР°РµС‚ РїР°РјСЏС‚СЊ
+BigNumber::~BigNumber() {
+    while (head) {
+        DigitNode* temp = head;
+        head = head->next;
+        delete temp;
+    }
+}
 
-                    // Проверяем ведущие нули
-                    if (A.hasLeadingZeros() || B.hasLeadingZeros() || C.hasLeadingZeros())
-                        continue;
+// Р РµР°Р»РёР·Р°С†РёСЏ РјРµС‚РѕРґРѕРІ CircularNumberRing
+CircularNumberRing::CircularNumberRing() : head(nullptr), tail(nullptr), length(0) {}
 
-                    // Проверяем, выполняется ли A + B = C
-                    if (BigNumber::add(A, B).toString() == C.toString()) {
-                        return A.toString() + "+" + B.toString() + "=" + C.toString();
-                    }
+// Р”РѕР±Р°РІР»СЏРµС‚ С†РёС„СЂСѓ РІ РєРѕР»СЊС†Рѕ
+void CircularNumberRing::append(int digit) {
+    DigitNode* newNode = new DigitNode(digit);
+    if (!tail) {
+        head = tail = newNode;
+        tail->next = head;
+    }
+    else {
+        tail->next = newNode;
+        newNode->next = head;
+        tail = newNode;
+    }
+    length++;
+}
+
+// РЎРѕР·РґР°РµС‚ РєРѕР»СЊС†Рѕ РёР· СЃС‚СЂРѕРєРё С†РёС„СЂ
+void CircularNumberRing::fromString(const string& s) {
+    for (char c : s) if (isdigit(c)) append(c - '0');
+}
+
+// РџРѕР»СѓС‡Р°РµС‚ РїРѕРґС‡РёСЃР»Рѕ РёР· РєРѕР»СЊС†Р°, РЅР°С‡РёРЅР°СЏ СЃ СѓРєР°Р·Р°РЅРЅРѕРіРѕ СѓР·Р»Р°
+BigNumber CircularNumberRing::getSubNumber(DigitNode* start, int len) const {
+    BigNumber num;
+    DigitNode* curr = start;
+    for (int i = 0; i < len; ++i) {
+        num.append(curr->digit);
+        curr = curr->next;
+    }
+    return num;
+}
+
+// Р РµС€Р°РµС‚ Р·Р°РґР°С‡Сѓ РїРѕРёСЃРєР° РєРѕРјР±РёРЅР°С†РёРё A+B=C РІ С‡РёСЃР»РѕРІРѕРј РєРѕР»СЊС†Рµ
+string CircularNumberRing::solve() const {
+    if (length < 3) return "No";
+
+    string numStr;
+    DigitNode* curr = head;
+    for (int i = 0; i < length; ++i) {
+        numStr += to_string(curr->digit);
+        curr = curr->next;
+    }
+
+    for (int lenA = 1; lenA <= length - 2; ++lenA) {
+        for (int lenB = 1; lenB <= length - lenA - 1; ++lenB) {
+            int lenC = length - lenA - lenB;
+            if (lenC <= 0) continue;
+
+            string aStr = numStr.substr(0, lenA);
+            string bStr = numStr.substr(lenA, lenB);
+            string cStr = numStr.substr(lenA + lenB, lenC);
+
+            if ((aStr.size() > 1 && aStr[0] == '0') ||
+                (bStr.size() > 1 && bStr[0] == '0') ||
+                (cStr.size() > 1 && cStr[0] == '0')) {
+                continue;
+            }
+
+            BigNumber A, B, C;
+            A.fromString(aStr);
+            B.fromString(bStr);
+            C.fromString(cStr);
+
+            BigNumber sum = BigNumber::add(A, B);
+            if (sum.toString() == C.toString()) {
+                return aStr + "+" + bStr + "=" + cStr;
+            }
+        }
+    }
+
+    for (int shift = 1; shift < length; ++shift) {
+        string shiftedStr = numStr.substr(shift) + numStr.substr(0, shift);
+
+        for (int lenA = 1; lenA <= length - 2; ++lenA) {
+            for (int lenB = 1; lenB <= length - lenA - 1; ++lenB) {
+                int lenC = length - lenA - lenB;
+                if (lenC <= 0) continue;
+
+                string aStr = shiftedStr.substr(0, lenA);
+                string bStr = shiftedStr.substr(lenA, lenB);
+                string cStr = shiftedStr.substr(lenA + lenB, lenC);
+
+                if ((aStr.size() > 1 && aStr[0] == '0') ||
+                    (bStr.size() > 1 && bStr[0] == '0') ||
+                    (cStr.size() > 1 && cStr[0] == '0')) {
+                    continue;
+                }
+
+                BigNumber A, B, C;
+                A.fromString(aStr);
+                B.fromString(bStr);
+                C.fromString(cStr);
+
+                BigNumber sum = BigNumber::add(A, B);
+                if (sum.toString() == C.toString()) {
+                    return aStr + "+" + bStr + "=" + cStr;
                 }
             }
-            start = start->next;  // Переходим к следующей стартовой позиции
         }
-        return "No";  // Решение не найдено
     }
 
-    // Деструктор для освобождения памяти
-    ~CircularNumberRing() {
-        if (!head) return;
-        DigitNode* curr = head->next;
-        while (curr != head) {
-            DigitNode* temp = curr;
-            curr = curr->next;
-            delete temp;
-        }
-        delete head;
-    }
-};
+    return "No";
+}
 
-// Очистка буфера ввода
+// Р”РµСЃС‚СЂСѓРєС‚РѕСЂ - РѕСЃРІРѕР±РѕР¶РґР°РµС‚ РїР°РјСЏС‚СЊ
+CircularNumberRing::~CircularNumberRing() {
+    if (!head) return;
+    DigitNode* curr = head->next;
+    while (curr != head) {
+        DigitNode* temp = curr;
+        curr = curr->next;
+        delete temp;
+    }
+    delete head;
+}
+
+// РћС‡РёС‰Р°РµС‚ Р±СѓС„РµСЂ РІРІРѕРґР°
 void clearInput() {
     cin.clear();
     while (cin.get() != '\n');
 }
 
-// Вывод главного меню
-void showMenu() {
-    cout << "\n=== Программа: Числовое кольцо ===\n"
-        << "1. Чтение из файла\n"
-        << "2. Ручное заполнение\n"
-        << "3. Выход\n"
-        << "Выбор: ";
-}
 
-// Обработка нецифровых символов
+// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РЅРµРІР°Р»РёРґРЅС‹Р№ РІРІРѕРґ, РїСЂРµРґР»Р°РіР°СЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ РІС‹Р±РѕСЂ
 bool handleInvalidInput(const string& input, const string& clean) {
-    cout << "\nНайдены нецифровые символы:\n"
-        << "Исходная строка: " << input << "\n"
-        << "Очищенная строка: " << clean << "\n\n"
-        << "1. Использовать очищенную строку\n"
-        << "2. Завершить программу\n"
-        << "Выбор: ";
+    cout << "\nРќР°Р№РґРµРЅС‹ РЅРµС†РёС„СЂРѕРІС‹Рµ СЃРёРјРІРѕР»С‹:\n"
+        << "РСЃС…РѕРґРЅР°СЏ СЃС‚СЂРѕРєР°: " << input << "\n"
+        << "РћС‡РёС‰РµРЅРЅР°СЏ СЃС‚СЂРѕРєР°: " << clean << "\n\n"
+        << "1. РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РѕС‡РёС‰РµРЅРЅСѓСЋ СЃС‚СЂРѕРєСѓ\n"
+        << "2. Р—Р°РІРµСЂС€РёС‚СЊ РїСЂРѕРіСЂР°РјРјСѓ\n"
+        << "Р’С‹Р±РѕСЂ: ";
 
     int choice;
     while (!(cin >> choice) || (choice != 1 && choice != 2)) {
         clearInput();
-        cout << "Введите 1 или 2: ";
+        cout << "Р’РІРµРґРёС‚Рµ 1 РёР»Рё 2: ";
     }
     clearInput();
     return choice == 1;
 }
 
-// Обработка файлового ввода
+// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РІРІРѕРґ РёР· С„Р°Р№Р»Р°
 void processFile() {
+    setlocale(LC_ALL, "Russian");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
     ifstream in("input.txt");
     ofstream out("output.txt", ios::app);
 
     if (!in) {
-        cout << "Файл input.txt не найден!\n";
+        cout << "Р¤Р°Р№Р» input.txt РЅРµ РЅР°Р№РґРµРЅ!\n";
         return;
     }
 
     if (in.peek() == EOF) {
-        cout << "Файл пустой!\n";
+        cout << "Р¤Р°Р№Р» РїСѓСЃС‚РѕР№!\n";
         return;
     }
 
-    cout << "\nЧтение файла:\n";
+    cout << "\nР§С‚РµРЅРёРµ С„Р°Р№Р»Р°:\n";
     string line;
     bool hasValidData = false;
 
     while (getline(in, line)) {
-        cout << "Строка: " << line << endl;
+        cout << "РЎС‚СЂРѕРєР°: " << line << endl;
 
-        string clean;
-        for (char c : line) {
-            if (isdigit(c)) clean += c;
-        }
+        InputValidator validator(line);
 
-        if (clean.empty()) {
-            cout << "Недопустимая строка (нет цифр)\n";
+        if (!validator.hasMinimumDigits()) {
+            cout << "РќРµРґРѕРїСѓСЃС‚РёРјР°СЏ СЃС‚СЂРѕРєР° (С‚РѕР»СЊРєРѕ " << validator.getCleanedInput().length()
+                << " С†РёС„СЂ): " << validator.getCleanedInput() << "\n";
             continue;
         }
 
-        if (clean.length() < 3) {
-            cout << "Недопустимая строка (только " << clean.length()
-                << " цифр): " << clean << "\n";
-            continue;
-        }
-
-        if (line != clean && !handleInvalidInput(line, clean)) {
-            cout << "Обработка отменена пользователем\n";
+        if (validator.containsNonDigits() && !handleInvalidInput(validator.getOriginalInput(), validator.getCleanedInput())) {
+            cout << "РћР±СЂР°Р±РѕС‚РєР° РѕС‚РјРµРЅРµРЅР° РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј\n";
             break;
         }
 
         CircularNumberRing ring;
-        ring.fromString(clean);
+        ring.fromString(validator.getCleanedInput());
         string res = ring.solve();
-        cout << "Результат: " << res << "\n\n";
-        out << clean << " -> " << res << endl;
+        cout << "Р РµР·СѓР»СЊС‚Р°С‚: " << res << "\n\n";
+        out << validator.getCleanedInput() << " -> " << res << endl;
         hasValidData = true;
     }
 
     if (!hasValidData) {
-        cout << "Файл не содержит подходящих данных (минимум 3 цифры в строке)!\n";
+        cout << "Р¤Р°Р№Р» РЅРµ СЃРѕРґРµСЂР¶РёС‚ РїРѕРґС…РѕРґСЏС‰РёС… РґР°РЅРЅС‹С… (РјРёРЅРёРјСѓРј 3 С†РёС„СЂС‹ РІ СЃС‚СЂРѕРєРµ)!\n";
     }
     else {
-        cout << "Результаты сохранены в output.txt\n";
+        cout << "Р РµР·СѓР»СЊС‚Р°С‚С‹ СЃРѕС…СЂР°РЅРµРЅС‹ РІ output.txt\n";
     }
 }
 
-// Обработка ручного ввода
+// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ СЂСѓС‡РЅРѕР№ РІРІРѕРґ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
 void processManual() {
-    cout << "\nВведите строку: ";
+    setlocale(LC_ALL, "Russian");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    cout << "\nР’РІРµРґРёС‚Рµ СЃС‚СЂРѕРєСѓ: ";
     string input;
     getline(cin, input);
 
-    string clean;
-    for (char c : input) if (isdigit(c)) clean += c;
+    InputValidator validator(input);
 
-    if (input != clean && !handleInvalidInput(input, clean)) {
-        cout << "Ввод отменен\n";
+    if (!validator.hasMinimumDigits()) {
+        cout << "РќСѓР¶РЅРѕ РјРёРЅРёРјСѓРј 3 С†РёС„СЂС‹!\n";
         return;
     }
 
-    if (clean.length() < 3) {
-        cout << "Нужно минимум 3 цифры!\n";
+    if (validator.containsNonDigits() && !handleInvalidInput(validator.getOriginalInput(), validator.getCleanedInput())) {
+        cout << "Р’РІРѕРґ РѕС‚РјРµРЅРµРЅ\n";
         return;
     }
 
     CircularNumberRing ring;
-    ring.fromString(clean);
+    ring.fromString(validator.getCleanedInput());
     string res = ring.solve();
-    cout << "Результат: " << res << endl;
+    cout << "Р РµР·СѓР»СЊС‚Р°С‚: " << res << endl;
 
     ofstream out("output.txt", ios::app);
-    out << clean << " -> " << res << endl;
-    cout << "Сохранено в output.txt\n";
+    out << validator.getCleanedInput() << " -> " << res << endl;
+    cout << "РЎРѕС…СЂР°РЅРµРЅРѕ РІ output.txt\n";
+}
+
+// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РіР»Р°РІРЅРѕРµ РјРµРЅСЋ РїСЂРѕРіСЂР°РјРјС‹
+void showMenu() {
+    cout << "\n=== РџСЂРѕРіСЂР°РјРјР°: Р§РёСЃР»РѕРІРѕРµ РєРѕР»СЊС†Рѕ ===\n"
+        << "1. Р§С‚РµРЅРёРµ РёР· С„Р°Р№Р»Р°\n"
+        << "2. Р СѓС‡РЅРѕРµ Р·Р°РїРѕР»РЅРµРЅРёРµ\n"
+        << "3. Р’С‹С…РѕРґ\n"
+        << "Р’С‹Р±РѕСЂ: ";
 }
